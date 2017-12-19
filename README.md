@@ -5,7 +5,7 @@ Facebook provides the [Live API](https://developers.facebook.com/docs/videos/liv
 There are two browser technologies required.  [CanvasCaptureMediaStream](https://developer.mozilla.org/en-US/docs/Web/API/CanvasCaptureMediaStream) is used to create a raw video stream from a [canvas](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) element.  The [MediaRecorder API](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) is what allows codec usage in the browser, turning raw video into VP8, VP9, or H.264 encoded video which can be efficiently sent to the server.  As of this writing, only Chrome, Firefox, and Opera support these technologies.  Of these browsers, only Chrome supports encoding with the H.264 codec which is the video codec required by Facebook Live.  For Firefox and Opera, the user's video would need to be transcoded server-side.  This extra transcoding step requires a significant amount of CPU resource on the server.
 
 ## Architecture
-`
+
 This project is made up of three parts.  The first is the client-side application, shown below in orange, which handles the actual creation of the video stream.  The second part is a proxy, shown in yellow, which translates from WebSocket to RTMP.  The third part is the Facebook Live API itself.
 
 ![Architecture Diagram](doc/architecture.png)
