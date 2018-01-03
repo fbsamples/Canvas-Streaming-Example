@@ -9,6 +9,7 @@ There are two browser technologies required.  [CanvasCaptureMediaStream](https:/
 This project is made up of three parts.  The first is the client-side application, shown below in orange, which handles the actual creation of the video stream.  The second part is a proxy, shown in yellow, which translates from WebSocket to RTMP.  The third part is the Facebook Live API itself.
 
 ![Architecture Diagram](doc/architecture.png)
+
 RTMP was a protocol used for server-side interactions with Flash applications.  It was eventually adapted for publishing and distributing video streams.  While still a popular protocol for streaming, no browser supports it natively.  Therefore, to stream video from a browser, we need a transport protocol that is supported by the browser.
 
 [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) are a good choice, as they enable a persistent connection to stream binary data between the client and server.  We can use a WebSocket connection as a pipe through which we send video data.  Once the video data reaches the server, we have more flexibility in technology choice and can relay it to Facebook Live over RTMP, which is the only protocol the Facebook Live API supports.
@@ -41,7 +42,7 @@ You will also need to install [FFmpeg](https://ffmpeg.org/).  Be sure to underst
 
 Once all dependencies are installed, create a new script named server.js or something similar.  We will start by setting up the basic HTTP server and bringing in dependencies:
 
-```
+```js
 const child_process = require('child_process'); // To be used later for running FFmpeg
 const express = require('express');
 const http = require('http');
@@ -60,7 +61,7 @@ If you run this application now (run `node server.js`), you should see “Listenin
 
 Now, we will add a WebSocket server by appending this code to server.js:
 
-```
+```js
 const wss = new WebSocketServer({
   server: server
 });
@@ -88,7 +89,7 @@ To get this data into FFmpeg, we need to execute FFmpeg as a child process.  Whe
 
 Replace the `connection` event handler that we added above with the following code, which will execute FFmpeg when required:
 
-```
+```js
 wss.on('connection', (ws) => {
   
   // Ensure that the URL starts with '/rtmp/', and extract the target RTMP URL.
@@ -174,7 +175,7 @@ With our FFmpeg-powered WebSocket-to-RTMP proxy complete, we can move on to the 
 
 Let's start by creating a normal HTML page with a canvas element and a 'go live' button.  Name it index.html and place it inside a directory named www under your project.  The server we created previously will use the www directory as its document root.
 
-```
+```HTML
 <!doctype html>
 <html>
   <head>
@@ -193,7 +194,7 @@ Let's start by creating a normal HTML page with a canvas element and a 'go live'
 
 Now, create `www/js/canvasFill.js` with something that draws on the canvas.  As an example, this code draws the current timestamp on top of an abstract background:
 
-```
+```js
 (() => {
   let canvas;
   let ctx;
@@ -291,7 +292,7 @@ If you have trouble with these steps, you may want to read the additional [docum
 
 Now, add a `<script>` tag just before the closing `</head>` tag in your page.  For simplicity, this script element is where we will put all remaining client-side code in this tutorial.  Of course, you can move it to a separate script as you see fit.  In your new script tag, initialize the Facebook SDK:
 
-```
+```js
 FB.init({
   appId: 'your app id',
   version: 'v2.8'
@@ -312,7 +313,7 @@ The second phase of the Go Live Dialog, 'publish', allows users to set the title
 
 After our SDK initialization code from the previous section, add the following code to launch the Go Live Dialog when our 'go live' button is clicked.
 
-```
+```js
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('[data-action="goLive"]').addEventListener('click', (e) => {
     FB.ui({
@@ -328,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 In this code snippet, we wait for the page HTML to be parsed and loaded.  Then, we find our 'go live' button and tell the Facebook JS SDK to launch the live creation dialog when the button is clicked.  When the user clicks 'go live', fills out the form for the create phase, and clicks 'next', our callback will be called with the create phase response data in createRes.  On the console, you should see something like this:
 
-```
+```JSON
 {
   "id": "12345",
   "secure_stream_url": "rtmps://rtmp-api.facebook.com:443/rtmp/12345?…",
@@ -340,7 +341,7 @@ The two key pieces are the stream_url and the secure_stream_url.  We can stream 
 
 We must now launch the 'publish' phase dialog.  Within our create dialog callback, right under where we log createRes, add the following code:
 
-```
+```js
 FB.ui({
   display: 'popup',
   method: 'live_broadcast',
@@ -357,14 +358,17 @@ We don't actually need the data from publishRes for this example.  You can use t
 
 ## Connect to the WebSocket-to-RTMP Proxy
 
-With the Facebook Live video object created, and a target RTMP URL in-hand (from secure_stream_url or stream_url in the previous step), we can now open a connection to our proxy.  The proxy looks for a path that begins with /rtmp/, followed by the target RTMP URL.  For example:
+With the Facebook Live video object created, and a target RTMP URL in-hand (from `secure_stream_url` or `stream_url` in the previous step), we can now open a connection to our proxy.  The proxy looks for a path that begins with `/rtmp/`, followed by the target RTMP URL.  For example:
 
+```
 ws://localhost:3000/rtmp/rtmp%3A%2F%2Frtmp-api.facebook.com%3A80%2Frtmp%2F12345
+```
 
 Note that the target RTMP URL is [encoded](http://www.blooberry.com/indexdot/html/topics/urlencoding.htm), to avoid any ambiguity.
 
 To implement this, add the following code underneath our 'publish' phase dialog setup, but still within the callback for the 'create' phase dialog:
 
+```js
 const ws = new WebSocket(
   window.location.protocol.replace('http', 'ws') + '//' + // http: -> ws:, https: -> wss:
   window.location.host + 
@@ -379,6 +383,7 @@ ws.addEventListener('open', (e) => {
 ws.addEventListener('close', (e) => {
   console.log('WebSocket Close', e);
 });
+```
 
 This code creates a new WebSocket connection with a WebSocket URL based on the current protocol (HTTP is switched to WS, HTTPS is switched to WSS), and the current host (which includes port).  From there, it adds event handlers for when a connection is established or disconnected.  If you run the server and open the page, open the developer console, and try to go live, you should see a WebSocket connection open indication on the console output.  If you do not, debug this before proceeding.
 
@@ -388,19 +393,24 @@ Before we can send video of the canvas, we first need to run it through a video 
 
 A MediaStream can be created for a canvas instance like so:
 
+```js
 let mediaStream = document.querySelector('canvas').captureStream(30); // 30 FPS
+```
 
 Once we have our MediaStream instance, we can create a MediaRecorder instance.  In Chrome, we can request H.264 for the video codec, allowing us to skip transcoding on the server.
 
+```js
 let mediaRecorder = new MediaRecorder(mediaStream, {
   mimeType: 'video/webm;codecs=h264',
   videoBitsPerSecond: 3 * 1024 * 1024
 });
+```
 
-The MediaRecorder fire a dataavailable event with regular blobs of data as it encodes the stream.  This is the encoded video, inside of a video container (such as WebM), ready to be written to a file.  We won't be writing it to a file... this is what we will be writing back to our WebSocket to be sent to the proxy to be piped into FFmpeg's STDIN.
+The MediaRecorder fire a `dataavailable` event with regular blobs of data as it encodes the stream.  This is the encoded video, inside of a video container (such as WebM), ready to be written to a file.  We won't be writing it to a file... this is what we will be writing back to our WebSocket to be sent to the proxy to be piped into FFmpeg's STDIN.
 
 Replace your code  for WebSocket open/close events with the following:
 
+```js
 let mediaStream;
 let mediaRecorder;
 ws.addEventListener('open', (e) => {
@@ -424,6 +434,7 @@ ws.addEventListener('close', (e) => {
   console.log('WebSocket Close', e);
   mediaRecorder.stop();
 });
+```
 
 That's all there is to it!  Now when you reload the page, you should be able to click 'go live', indicate where you want the stream and what you want to call it, and then see your streams on Facebook within 30 seconds or so.
 
