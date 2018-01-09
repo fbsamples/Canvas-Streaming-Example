@@ -1,27 +1,27 @@
 <!doctype html>
 <html>
-	<head>
-	  <meta charset="utf-8">
+ <head>
+   <meta charset="utf-8">
     <script src="https://connect.facebook.net/en_US/sdk.js"></script>
     <script src="js/canvasFill.js"></script>
-	  <script>
-	    FB.init({
-	      appId: '1148549121937746',
-	      version: 'v2.8'
-	    });
-	    
-	    document.addEventListener('DOMContentLoaded', () => {
-	      document.querySelector('[data-action="goLive"]').addEventListener('click', (e) => {
-	        FB.ui({
-	          display: 'popup',
-	          method: 'live_broadcast',
-	          phase: 'create'
-	        }, (createRes) => {
-	          console.log(createRes);
-	          let mediaRecorder;
-	          let mediaStream;
-	          
-	          FB.ui({
+   <script>
+     FB.init({
+       appId: '1148549121937746',
+       version: 'v2.8'
+     });
+
+     document.addEventListener('DOMContentLoaded', () => {
+       document.querySelector('[data-action="goLive"]').addEventListener('click', (e) => {
+         FB.ui({
+           display: 'popup',
+           method: 'live_broadcast',
+           phase: 'create'
+         }, (createRes) => {
+           console.log(createRes);
+           let mediaRecorder;
+           let mediaStream;
+
+           FB.ui({
               display: 'popup',
               method: 'live_broadcast',
               phase: 'publish',
@@ -29,47 +29,47 @@
             }, (publishRes) => {
               console.log(publishRes);
             });
-	          
-	          const ws = new WebSocket(
-	            window.location.protocol.replace('http', 'ws') + '//' + // http: => ws:, https: -> wss:
-	            window.location.host + 
-	            '/rtmp/' + 
-	            encodeURIComponent(createRes.stream_url)
-	          );
-	          
-	          ws.addEventListener('open', (e) => {
-	            console.log('WebSocket Open', e);
-	            mediaStream = document.querySelector('canvas').captureStream(30); // 30 FPS
-	            mediaRecorder = new MediaRecorder(mediaStream, {
-	              mimeType: 'video/webm;codecs=h264',
-	              videoBitsPerSecond : 3000000
-	            });
-	            
-	            mediaRecorder.addEventListener('dataavailable', (e) => {
-	              ws.send(e.data);
-	            });
-	            
-	            mediaRecorder.addEventListener('stop', ws.close.bind(ws));
-	            
-	            mediaRecorder.start(1000); // Start recording, and dump data every second
-	            
-	            
-	          });
-	          
-	          ws.addEventListener('close', (e) => {
-	            console.log('WebSocket Close', e);
-	            mediaRecorder.stop();
-	          });
-	          
-	        });
-	      });
-	    });
-	  </script>
-	</head>
-	<body>
-	 <canvas width="640" height="360"></canvas>
+
+           const ws = new WebSocket(
+             window.location.protocol.replace('http', 'ws') + '//' + // http: => ws:, https: -> wss:
+             window.location.host +
+             '/rtmp/' +
+             encodeURIComponent(createRes.stream_url)
+           );
+
+           ws.addEventListener('open', (e) => {
+             console.log('WebSocket Open', e);
+             mediaStream = document.querySelector('canvas').captureStream(30); // 30 FPS
+             mediaRecorder = new MediaRecorder(mediaStream, {
+               mimeType: 'video/webm;codecs=h264',
+               videoBitsPerSecond : 3000000
+             });
+
+             mediaRecorder.addEventListener('dataavailable', (e) => {
+               ws.send(e.data);
+             });
+
+             mediaRecorder.addEventListener('stop', ws.close.bind(ws));
+
+             mediaRecorder.start(1000); // Start recording, and dump data every second
+
+
+           });
+
+           ws.addEventListener('close', (e) => {
+             console.log('WebSocket Close', e);
+             mediaRecorder.stop();
+           });
+
+         });
+       });
+     });
+   </script>
+ </head>
+ <body>
+  <canvas width="640" height="360"></canvas>
    <nav>
      <button data-action="goLive">Go Live</button>
    </nav>
-	</body>
+ </body>
 </html>
