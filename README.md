@@ -57,7 +57,7 @@ const server = http.createServer(app).listen(3000, () => {
 app.use(express.static(__dirname + '/www'));
 ```
 
-If you run this application now (run `node server.js`), you should see “Listening...” on the terminal, and if you go to http://localhost:3000/ you should see “Cannot GET /”.  This means that your server was able to listen on port :3000 and is handling HTTP requests, but there is nothing in the `www` directory yet to serve.  If you don't see what is expected, make sure node is in your path, that you don't have a strange firewall configuration blocking port :3000, and that nothing else is listening on port :3000.  (You can change this to any usable port if needed.  The specific port doesn't matter.  :3000 is just an example.)  Stop your Node.js server by pressing Ctrl + C.
+If you run this application now (run `node server.js`), you should see ï¿½Listening...ï¿½ on the terminal, and if you go to http://localhost:3000/ you should see ï¿½Cannot GET /ï¿½.  This means that your server was able to listen on port :3000 and is handling HTTP requests, but there is nothing in the `www` directory yet to serve.  If you don't see what is expected, make sure node is in your path, that you don't have a strange firewall configuration blocking port :3000, and that nothing else is listening on port :3000.  (You can change this to any usable port if needed.  The specific port doesn't matter.  :3000 is just an example.)  Stop your Node.js server by pressing Ctrl + C.
 
 Now, we will add a WebSocket server by appending this code to server.js:
 
@@ -66,7 +66,7 @@ const wss = new WebSocketServer({
   server: server
 });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   ws.on('message', (msg) => {
     console.log('DATA', msg);
   });
@@ -90,11 +90,11 @@ To get this data into FFmpeg, we need to execute FFmpeg as a child process.  Whe
 Replace the `connection` event handler that we added above with the following code, which will execute FFmpeg when required:
 
 ```js
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   
   // Ensure that the URL starts with '/rtmp/', and extract the target RTMP URL.
   let match;
-  if ( !(match = ws.upgradeReq.url.match(/^\/rtmp\/(.*)$/)) ) {
+  if ( !(match = req.url.match(/^\/rtmp\/(.*)$/)) ) {
     ws.terminate(); // No match, reject the connection.
     return;
   }
@@ -332,8 +332,8 @@ In this code snippet, we wait for the page HTML to be parsed and loaded.  Then, 
 ```JSON
 {
   "id": "12345",
-  "secure_stream_url": "rtmps://rtmp-api.facebook.com:443/rtmp/12345?…",
-  "stream_url": "rtmp://rtmp-api.facebook.com:80/rtmp/12345?…"
+  "secure_stream_url": "rtmps://rtmp-api.facebook.com:443/rtmp/12345?ï¿½",
+  "stream_url": "rtmp://rtmp-api.facebook.com:80/rtmp/12345?ï¿½"
 }
 ```
 

@@ -27,11 +27,11 @@ app.use((req, res, next) => {
 
 app.use(express.static(__dirname + '/www'));
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   
   // Ensure that the URL starts with '/rtmp/', and extract the target RTMP URL.
   let match;
-  if ( !(match = ws.upgradeReq.url.match(/^\/rtmp\/(.*)$/)) ) {
+  if ( !(match = req.url.match(/^\/rtmp\/(.*)$/)) ) {
     ws.terminate(); // No match, reject the connection.
     return;
   }
